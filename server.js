@@ -1,5 +1,8 @@
 import express from "express"
 import mongoose from "mongoose"
+import jwt from "jsonwebtoken"
+import bcrypt from "bcrypt"
+const SECRET = "hello123"
 const app = express()
 app.use(express.json())
 app.listen(8081, () => console.log("Server started"))
@@ -11,21 +14,46 @@ const userSchema = mongoose.Schema({
     role: "String",
 })
 const userModel = mongoose.model("User", userSchema)
+
+const authenticate = async (req, res, next) => {
+    try {
+        const authHeader = req.headers.authorization
+        const token = authHeader.split(" ")[1]
+        const user = await jwt.verify(token, SECRET)
+        req.user = user
+        next()
+    }
+    catch (error) {
+        res.json({ message: "Unauthorized" })
+    }
+}
+
 app.post("/users/register", async (req, res) => {
+    console.log(req.body)
+    const hashpassword = await bcrypt.hash(req.body.password, 10)
+    req.body.password = hashpassword
     const user = await userModel.create(req.body)
     res.json(user)
 })
 app.post("/users/login", async (req, res) => {
     const { email, password } = req.body
-    const user = await userModel.findOne({ email, password })
+    const user = await userModel.findOne({ email })
     if (user) {
-        res.json(user)
+        const chkPassword = await bcrypt.compare(password, user.password)
+        if (chkPassword) {
+            const obj = { id: user._id, name: user.name, email: user.email, role: user.role }
+            const token = await jwt.sign(obj, SECRET, { expiresIn: "1hr" })
+            res.json({ ...obj, token })
+        }
+        else {
+            res.json({ message: "Invalid Password" })
+        }
     }
     else {
         res.json({ message: "User not found" })
     }
 })
-app.get("/users",async (req,res)=>{
+app.get("/users", authenticate, async (req, res) => {
     const users = await userModel.find()
     res.json(users)
 })
