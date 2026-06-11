@@ -1,10 +1,12 @@
 import express from "express"
 import mongoose from "mongoose"
 import jwt from "jsonwebtoken"
+import cors from "cors"
 import bcrypt from "bcrypt"
 const SECRET = "hello123"
 const app = express()
 app.use(express.json())
+app.use(cors())
 app.listen(8081, () => console.log("Server started"))
 mongoose.connect("mongodb://localhost:27017/mytestdb1")
 const userSchema = mongoose.Schema({
@@ -54,14 +56,14 @@ app.post("/users/login", async (req, res) => {
         if (chkPassword) {
             const obj = { id: user._id, name: user.name, email: user.email, role: user.role }
             const token = await jwt.sign(obj, SECRET, { expiresIn: "1hr" })
-            res.json({ ...obj, token })
+            res.json({ ...obj, token,success:true })
         }
         else {
-            res.json({ message: "Invalid Password" })
+            res.json({ message: "Invalid Password",success:false })
         }
     }
     else {
-        res.json({ message: "User not found" })
+        res.json({ message: "User not found",success:false })
     }
 })
 app.get("/users", authenticate, authorize("admin"), async (req, res) => {
