@@ -28,6 +28,17 @@ const authenticate = async (req, res, next) => {
     }
 }
 
+const authorize = (...roles) => {
+    return (req, res, next) => {
+        if (roles.includes(req.user.role)) {
+            next()
+        }
+        else {
+            res.json({ message: "Access Denied" })
+        }
+    }
+}
+
 app.post("/users/register", async (req, res) => {
     console.log(req.body)
     const hashpassword = await bcrypt.hash(req.body.password, 10)
@@ -53,7 +64,7 @@ app.post("/users/login", async (req, res) => {
         res.json({ message: "User not found" })
     }
 })
-app.get("/users", authenticate, async (req, res) => {
+app.get("/users", authenticate, authorize("admin"), async (req, res) => {
     const users = await userModel.find()
     res.json(users)
 })
