@@ -8,7 +8,7 @@ const userSchema = mongoose.Schema({
     name: "String",
     email: "String",
     password: "String",
-    role: "String"
+    role: "String",
 })
 const userModel = mongoose.model("User", userSchema)
 app.post("/users/register", async (req, res) => {
